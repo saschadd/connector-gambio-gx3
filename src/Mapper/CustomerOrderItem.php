@@ -127,7 +127,7 @@ class CustomerOrderItem extends BaseMapper
 
     protected function price($data)
     {
-        return $data['products_price'] / (100 + $data['products_tax']) * 100;
+        return $data['products_price'] / (100 + $this->vat($data)) * 100;
     }
 
     protected function priceGross($data)
@@ -137,6 +137,12 @@ class CustomerOrderItem extends BaseMapper
 
     protected function vat($data)
     {
+        $taxRate = $this->db->query('SELECT tax_rate FROM orders_tax_sum_items WHERE order_id=' . $data['orders_id']);
+    
+        if (count($taxRate) === 1 && isset($taxRate[0]['tax_rate']) && (float)$taxRate[0]['tax_rate'] === 0.) {
+            return 0.0;
+        }
+        
         return $data['products_tax'];
     }
 

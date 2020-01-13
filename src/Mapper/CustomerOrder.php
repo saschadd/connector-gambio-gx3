@@ -276,7 +276,7 @@ class CustomerOrder extends BaseMapper
         $totalData = $this->db->query('SELECT class,value,title FROM orders_total WHERE orders_id=' . $data['orders_id']);
         $taxRate = $this->db->query('SELECT tax_rate FROM orders_tax_sum_items WHERE order_id=' . $data['orders_id']);
 
-        $vatExcl = isset($taxRate[0]['tax_rate']) && (float)$taxRate[0]['tax_rate'] === 0.;
+        $vatExcl = count($taxRate) === 1 && isset($taxRate[0]['tax_rate']) && (float)$taxRate[0]['tax_rate'] === 0.;
 
         foreach ($totalData as $total) {
             if ($total['class'] == 'ot_total') {
@@ -331,31 +331,31 @@ class CustomerOrder extends BaseMapper
             }
 
             $item = new CustomerOrderItem();
-                switch ($total['class']) {
-                    case 'ot_cod_fee':
-                        $item->setType(CustomerOrderItem::TYPE_SHIPPING);
-                        break;
-        
-                    case 'ot_payment':
-                        $item->setType(CustomerOrderItem::TYPE_PRODUCT);
-                        break;
-        
-                    case 'ot_coupon':
-                    case 'ot_gv':
-                    case 'ot_discount':
-                        $item->setType(CustomerOrderItem::TYPE_COUPON);
-                        break;
-                }
-
-                $item->setName($total['title']);
-                $item->setCustomerOrderId($this->identity($data['orders_id']));
-                $item->setId($this->identity($total['orders_total_id']));
-                $item->setQuantity(1);
-                $item->setVat(($vatExcl ? 0. : floatval($taxRate[0]['tax_rate'])));
-                //$item->setPrice(floatval($total['value']) - (floatval($total['value'])*($taxRate[0]['tax_rate'] / 100)));
-                $item->setPriceGross($total['class'] == 'ot_gv' ? floatval($total['value']) * -1 : floatval($total['value']));
+            switch ($total['class']) {
+                case 'ot_cod_fee':
+                    $item->setType(CustomerOrderItem::TYPE_SHIPPING);
+                    break;
     
-                $model->addItem($item);
+                case 'ot_payment':
+                    $item->setType(CustomerOrderItem::TYPE_PRODUCT);
+                    break;
+    
+                case 'ot_coupon':
+                case 'ot_gv':
+                case 'ot_discount':
+                    $item->setType(CustomerOrderItem::TYPE_COUPON);
+                    break;
+            }
+
+            $item->setName($total['title']);
+            $item->setCustomerOrderId($this->identity($data['orders_id']));
+            $item->setId($this->identity($total['orders_total_id']));
+            $item->setQuantity(1);
+            $item->setVat($vatExcl ? 0. : floatval($taxRate[0]['tax_rate']));
+            //$item->setPrice(floatval($total['value']) - (floatval($total['value'])*($taxRate[0]['tax_rate'] / 100)));
+            $item->setPriceGross($total['class'] == 'ot_gv' ? floatval($total['value']) * -1 : floatval($total['value']));
+
+            $model->addItem($item);
         }
 
         $model->addItem($shipping);
